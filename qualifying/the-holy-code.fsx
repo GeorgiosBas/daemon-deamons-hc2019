@@ -6,6 +6,20 @@ open System.Diagnostics
 open System.IO
 open System.Security.Cryptography
 
+let iterCount = 10
+
+let min3 x1 x2 x3 =
+    if x1 < x2 then
+        if x1 < x3 then
+            x1
+        else
+            x3
+    else
+        if x2 < x3 then
+            x2
+        else
+            x3
+
 let rand =
     let csprng = RandomNumberGenerator.Create()
     let fRNG () =
@@ -17,7 +31,7 @@ let rand =
 
 let shuffle arr =
     let fShuffle = Array.shuffleInPlace arr
-    Random.get fShuffle rand
+    Random.get fShuffle <| rand
 
 [<Struct>]
 type Orientation = H | V
@@ -41,13 +55,27 @@ let rec pairs (x: _ []) = seq {
 
 type SlideShow = Image list []
 
+let scoreIt (s: SlideShow) =
+    let fScore (t1, t2) =
+        let s1 = Set.difference t1 t2 |> Set.count
+        let s2 = Set.intersect t1 t2 |> Set.count
+        let s3 = Set.difference t2 t1 |> Set.count
+        min3 s1 s2 s3
+    let score =
+        s
+        |> Seq.map (Seq.map (fun {Tags = t} -> t) >> Set.unionMany)
+        |> Seq.pairwise
+        |> Seq.sumBy fScore
+    Console.WriteLine score
+    score
+
 let solveIt (data: string []) () =
     let parseLine idx l =
         let O(o) :: _ :: tags = List.ofArray l
         {Id = uint32 idx; O = o; Tags = set tags}
     let data = data |> Seq.mapi (fun idx x -> x.Split(' ') |> parseLine idx) |> Array.ofSeq
 
-    let slideShows: SlideShow =
+    let fSlideShows _: SlideShow =
         let h, v = Array.partition (getO >> ((=) H)) data
         let h = h |> Array.map List.singleton
         shuffle v
@@ -58,8 +86,13 @@ let solveIt (data: string []) () =
 
         theHolyResult
 
-    slideShows
-    |> Seq.map (Seq.map (fun {Id = idx} -> string idx) >> String.concat " ") |> Seq.append [string slideShows.Length]
+    let theHolySlideShow =
+        Seq.initInfinite fSlideShows
+        |> Seq.take iterCount
+        |> Seq.maxBy scoreIt
+
+    theHolySlideShow
+    |> Seq.map (Seq.map (fun {Id = idx} -> string idx) >> String.concat " ") |> Seq.append [string theHolySlideShow.Length]
 
 // MAGIC ENDS HERE
 
