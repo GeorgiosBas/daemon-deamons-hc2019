@@ -1,0 +1,6 @@
+RESTRICTION: == net472
+NUGET
+  remote: https://api.nuget.org/v3/index.json
+    FSharp.Core (4.6.2)
+    FsRandom (1.4.0.1)
+      FSharp.Core (>= 4.3.4)
