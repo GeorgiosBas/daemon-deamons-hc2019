@@ -13,6 +13,16 @@ type Image = {
     Tags: string Set
 }
 
+let getO x = x.O
+
+let rec pairs x = seq {
+    match x with
+    | x1 :: x2 :: xs ->
+        yield [x1; x2]
+        yield! pairs xs
+    | _ -> ()
+}
+
 type SlideShow = Image list list
 
 let solveIt (data: string list) () =
@@ -21,7 +31,11 @@ let solveIt (data: string list) () =
         {Id = uint32 idx; O = o; Tags = set tags}
     let data = data |> List.mapi (fun idx x -> x.Split(' ') |> parseLine idx)
 
-    let slideShows: SlideShow = data |> List.map List.singleton
+    let slideShows: SlideShow =
+        let h, v = List.partition (getO >> ((=) H)) data
+        let h = h |> List.map List.singleton
+        let v = v |> pairs |> List.ofSeq
+        h @ v
 
     slideShows
     |> Seq.map (Seq.map (fun {Id = idx} -> string idx) >> String.concat " ") |> Seq.append [string slideShows.Length]
