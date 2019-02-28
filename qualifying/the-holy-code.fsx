@@ -75,9 +75,11 @@ let solveIt (data: string []) () =
         {Id = uint32 idx; O = o; Tags = set tags}
     let data = data |> Seq.mapi (fun idx x -> x.Split(' ') |> parseLine idx) |> Array.ofSeq
 
+    let h, v = Array.partition (getO >> ((=) H)) data
+    let h = h |> Array.map List.singleton
+
     let fSlideShows _: SlideShow =
-        let h, v = Array.partition (getO >> ((=) H)) data
-        let h = h |> Array.map List.singleton
+
         shuffle v
         let v = v |> pairs |> Array.ofSeq
 
