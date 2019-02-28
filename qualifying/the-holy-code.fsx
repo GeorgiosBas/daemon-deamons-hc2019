@@ -4,14 +4,26 @@ open System
 [<Struct>]
 type Orientation = H | V
 
+let (|O|) x = match x with | "H" -> H | _ -> V
+
 type Image = {
+    Id: uint32
     O: Orientation
     Tags: string Set
 }
 
-type SlideShow = Image * Image option
+type SlideShow = Image list []
 
-let solveIt data = raise <| NotImplementedException()
+let solveIt (data: string list) =
+    let parseLine idx l =
+        let O(o) :: _ :: tags = List.ofArray l
+        {Id = uint32 idx; O = o; Tags = set tags}
+    let data = data |> List.mapi (fun idx x -> x.Split(' ') |> parseLine idx)
+
+    let slideShows: SlideShow = data |> List.map List.singleton |> Array.ofList
+
+    slideShows
+    |> Seq.map (Seq.map (fun {Id = idx} -> string idx) >> String.concat " ") |> Seq.append [string slideShows.Length]
 
 // MAGIC ENDS HERE
 
@@ -21,6 +33,6 @@ Environment.CurrentDirectory
 |> Seq.map (Path.GetFileName)
 |> Seq.iter (fun x -> 
     let data = File.ReadAllLines x |> List.ofArray |> List.tail
-    let outputFileName = Path.ChangeExtension(x, ".out.txt")
+    let outputFileName = Path.ChangeExtension(x, ".out")
     let theHolySolution = solveIt data
     File.WriteAllLines(outputFileName, theHolySolution))
