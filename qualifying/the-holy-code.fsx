@@ -42,6 +42,7 @@ type Image = {
     Id: uint32
     O: Orientation
     Tags: string Set
+    mutable Chosen: bool
 }
 
 let getO x = x.O
@@ -51,6 +52,20 @@ let rec pairs (x: _ []) = seq {
     while i < x.Length - 1 do
         yield [x.[i]; x.[i + 1]]
         i <- i + 2
+}
+
+let rec fixHV (x: _ []) = seq {
+    for i = 0 to x.Length - 1 do
+        match x.[i].O with
+        | H -> yield [x.[i]]
+        | V ->
+            let theHolyPhoto = x |> Array.findBack (fun x -> x.O = V && not x.Chosen)
+            theHolyPhoto.Chosen <- true
+            yield [x.[i]; theHolyPhoto]
+        // | V when v.IsSome ->
+        //     yield [v.Value; x.[i]]
+        //     v <- None
+        // | V -> v <- Some x.[i]
 }
 
 type SlideShow = Image list []
@@ -72,26 +87,30 @@ let scoreIt (s: SlideShow) =
 let solveIt (data: string []) () =
     let parseLine idx l =
         let O(o) :: _ :: tags = List.ofArray l
-        {Id = uint32 idx; O = o; Tags = set tags}
+        {Id = uint32 idx; O = o; Tags = set tags; Chosen = false}
     let data = data |> Seq.mapi (fun idx x -> x.Split(' ') |> parseLine idx) |> Array.ofSeq
+
+    data |> Array.sortInPlaceBy (fun {Tags = x} -> Set.toArray x)
 
     let h, v = Array.partition (getO >> ((=) H)) data
     let h = h |> Array.map List.singleton
 
     let fSlideShows _: SlideShow =
 
-        shuffle v
+        // shuffle v
         let v = v |> pairs |> Array.ofSeq
 
         let theHolyResult = Array.append h v
-        shuffle theHolyResult
 
         theHolyResult
 
+    let data = data |> fixHV |> Array.ofSeq
+
     let theHolySlideShow =
-        Seq.initInfinite fSlideShows
-        |> Seq.take iterCount
-        |> Seq.maxBy scoreIt
+        // Seq.initInfinite fSlideShows
+        // |> Seq.take iterCount
+        // |> Seq.maxBy scoreIt
+        data
 
     theHolySlideShow
     |> Seq.map (Seq.map (fun {Id = idx} -> string idx) >> String.concat " ") |> Seq.append [string theHolySlideShow.Length]
