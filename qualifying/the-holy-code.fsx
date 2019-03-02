@@ -1,4 +1,5 @@
 open System
+open System.Collections.Generic
 open System.Diagnostics
 open System.IO
 
@@ -15,13 +16,18 @@ type Image = {
 
 let rec fixHV (x: _ []) = seq {
     let mutable v = None
-    for i = 0 to x.Length - 1 do
-        match x.[i].O with
-        | H -> yield [x.[i]]
-        | V when v.IsSome ->
-            yield [v.Value; x.[i]]
-            v <- None
-        | V -> v <- Some x.[i]
+    let x = LinkedList(x)
+    while not <| isNull x.First do
+        let p1 = x.First.Value
+        match p1.O with
+        | H -> yield [p1]
+        | V ->
+            let mutable y = x.Last
+            while y.Value.O <> V && not <| isNull y.Previous do
+                y <- y.Previous
+            yield [p1; y.Value]
+            x.Remove y
+        x.RemoveFirst()
 }
 
 let solveIt (data: string []) () =
