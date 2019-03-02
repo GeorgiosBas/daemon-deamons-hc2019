@@ -1,37 +1,6 @@
-#r "../packages/FsRandom/lib/net45/FsRandom.dll"
-
-open FsRandom
 open System
 open System.Diagnostics
 open System.IO
-open System.Security.Cryptography
-
-let iterCount = 10
-
-let min3 x1 x2 x3 =
-    if x1 < x2 then
-        if x1 < x3 then
-            x1
-        else
-            x3
-    else
-        if x2 < x3 then
-            x2
-        else
-            x3
-
-let rand =
-    let csprng = RandomNumberGenerator.Create()
-    let fRNG () =
-        let arr = Array.zeroCreate 8
-        csprng.GetBytes arr
-        let n = BitConverter.ToUInt64(arr, 0)
-        n, ()
-    createState fRNG ()
-
-let shuffle arr =
-    let fShuffle = Array.shuffleInPlace arr
-    Random.get fShuffle <| rand
 
 [<Struct>]
 type Orientation = H | V
@@ -42,75 +11,28 @@ type Image = {
     Id: uint32
     O: Orientation
     Tags: string Set
-    mutable Chosen: bool
-}
-
-let getO x = x.O
-
-let rec pairs (x: _ []) = seq {
-    let mutable i = 0
-    while i < x.Length - 1 do
-        yield [x.[i]; x.[i + 1]]
-        i <- i + 2
 }
 
 let rec fixHV (x: _ []) = seq {
+    let mutable v = None
     for i = 0 to x.Length - 1 do
         match x.[i].O with
         | H -> yield [x.[i]]
-        | V ->
-            let theHolyPhoto = x |> Array.findBack (fun x -> x.O = V && not x.Chosen)
-            theHolyPhoto.Chosen <- true
-            yield [x.[i]; theHolyPhoto]
-        // | V when v.IsSome ->
-        //     yield [v.Value; x.[i]]
-        //     v <- None
-        // | V -> v <- Some x.[i]
+        | V when v.IsSome ->
+            yield [v.Value; x.[i]]
+            v <- None
+        | V -> v <- Some x.[i]
 }
-
-type SlideShow = Image list []
-
-let scoreIt (s: SlideShow) =
-    let fScore (t1, t2) =
-        let s1 = Set.difference t1 t2 |> Set.count
-        let s2 = Set.intersect t1 t2 |> Set.count
-        let s3 = Set.difference t2 t1 |> Set.count
-        min3 s1 s2 s3
-    let score =
-        s
-        |> Seq.map (Seq.map (fun {Tags = t} -> t) >> Set.unionMany)
-        |> Seq.pairwise
-        |> Seq.sumBy fScore
-    Console.WriteLine score
-    score
 
 let solveIt (data: string []) () =
     let parseLine idx l =
         let O(o) :: _ :: tags = List.ofArray l
-        {Id = uint32 idx; O = o; Tags = set tags; Chosen = false}
+        {Id = uint32 idx; O = o; Tags = set tags}
     let data = data |> Seq.mapi (fun idx x -> x.Split(' ') |> parseLine idx) |> Array.ofSeq
 
-    data |> Array.sortInPlaceBy (fun {Tags = x} -> Set.toArray x)
+    data |> Array.sortInPlaceBy (fun {Tags = x} -> x)
 
-    let h, v = Array.partition (getO >> ((=) H)) data
-    let h = h |> Array.map List.singleton
-
-    let fSlideShows _: SlideShow =
-
-        // shuffle v
-        let v = v |> pairs |> Array.ofSeq
-
-        let theHolyResult = Array.append h v
-
-        theHolyResult
-
-    let data = data |> fixHV |> Array.ofSeq
-
-    let theHolySlideShow =
-        // Seq.initInfinite fSlideShows
-        // |> Seq.take iterCount
-        // |> Seq.maxBy scoreIt
-        data
+    let theHolySlideShow = data |> fixHV |> Array.ofSeq
 
     theHolySlideShow
     |> Seq.map (Seq.map (fun {Id = idx} -> string idx) >> String.concat " ") |> Seq.append [string theHolySlideShow.Length]
