@@ -1,4 +1,4 @@
-# Daemon Deamons - Google Hash Code 2019
+# Daemon Demons - Google Hash Code 2019
 
 This repository contains the source code of the Google Hash Code qualifying round submission of the Daemon Demons team.
 
